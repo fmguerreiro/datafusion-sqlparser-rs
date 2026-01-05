@@ -5206,6 +5206,7 @@ impl<'a> Parser<'a> {
             function_body: Option<CreateFunctionBody>,
             called_on_null: Option<FunctionCalledOnNull>,
             parallel: Option<FunctionParallel>,
+            security: Option<FunctionSecurity>,
         }
         let mut body = Body::default();
         loop {
@@ -5272,6 +5273,15 @@ impl<'a> Parser<'a> {
                 } else {
                     return self.expected("one of UNSAFE | RESTRICTED | SAFE", self.peek_token());
                 }
+            } else if self.parse_keyword(Keyword::SECURITY) {
+                ensure_not_set(&body.security, "SECURITY { DEFINER | INVOKER }")?;
+                if self.parse_keyword(Keyword::DEFINER) {
+                    body.security = Some(FunctionSecurity::Definer);
+                } else if self.parse_keyword(Keyword::INVOKER) {
+                    body.security = Some(FunctionSecurity::Invoker);
+                } else {
+                    return self.expected("DEFINER or INVOKER", self.peek_token());
+                }
             } else if self.parse_keyword(Keyword::RETURN) {
                 ensure_not_set(&body.function_body, "RETURN")?;
                 body.function_body = Some(CreateFunctionBody::Return(self.parse_expr()?));
@@ -5290,6 +5300,7 @@ impl<'a> Parser<'a> {
             behavior: body.behavior,
             called_on_null: body.called_on_null,
             parallel: body.parallel,
+            security: body.security,
             language: body.language,
             function_body: body.function_body,
             if_not_exists: false,
@@ -5327,6 +5338,7 @@ impl<'a> Parser<'a> {
             behavior: None,
             called_on_null: None,
             parallel: None,
+            security: None,
             language: None,
             determinism_specifier: None,
             options: None,
@@ -5409,6 +5421,7 @@ impl<'a> Parser<'a> {
             behavior: None,
             called_on_null: None,
             parallel: None,
+            security: None,
         }))
     }
 
@@ -5498,6 +5511,7 @@ impl<'a> Parser<'a> {
             behavior: None,
             called_on_null: None,
             parallel: None,
+            security: None,
         }))
     }
 

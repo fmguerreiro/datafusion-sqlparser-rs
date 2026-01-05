@@ -8771,6 +8771,24 @@ impl fmt::Display for FunctionBehavior {
     }
 }
 
+/// Specifies whether the function is SECURITY DEFINER or SECURITY INVOKER.
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "visitor", derive(Visit, VisitMut))]
+pub enum FunctionSecurity {
+    Definer,
+    Invoker,
+}
+
+impl fmt::Display for FunctionSecurity {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            FunctionSecurity::Definer => write!(f, "SECURITY DEFINER"),
+            FunctionSecurity::Invoker => write!(f, "SECURITY INVOKER"),
+        }
+    }
+}
+
 /// These attributes describe the behavior of the function when called with a null argument.
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
