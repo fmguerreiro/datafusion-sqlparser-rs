@@ -34,14 +34,14 @@ use super::{
     ColumnOption, ColumnOptionDef, ConditionalStatementBlock, ConditionalStatements,
     ConflictTarget, ConnectBy, ConstraintCharacteristics, CopySource, CreateIndex, CreateTable,
     CreateTableOptions, Cte, Delete, DoUpdate, ExceptSelectItem, ExcludeSelectItem, Expr,
-    ExprWithAlias, Fetch, FromTable, Function, FunctionArg, FunctionArgExpr,
+    ExprWithAlias, Fetch, ForValues, FromTable, Function, FunctionArg, FunctionArgExpr,
     FunctionArgumentClause, FunctionArgumentList, FunctionArguments, GroupByExpr, HavingBound,
     IfStatement, IlikeSelectItem, IndexColumn, Insert, Interpolate, InterpolateExpr, Join,
     JoinConstraint, JoinOperator, JsonPath, JsonPathElem, LateralView, LimitClause,
     MatchRecognizePattern, Measure, Merge, MergeAction, MergeClause, MergeInsertExpr,
     MergeInsertKind, MergeUpdateExpr, NamedParenthesizedList, NamedWindowDefinition, ObjectName,
     ObjectNamePart, Offset, OnConflict, OnConflictAction, OnInsert, OpenStatement, OrderBy,
-    OrderByExpr, OrderByKind, OutputClause, Partition, PivotValueSource, ProjectionSelect, Query,
+    OrderByExpr, OrderByKind, OutputClause, Partition, PartitionBoundValue, PivotValueSource, ProjectionSelect, Query,
     RaiseStatement, RaiseStatementValue, ReferentialAction, RenameSelectItem, ReplaceSelectElement,
     ReplaceSelectItem, Select, SelectInto, SelectItem, SetExpr, SqlOption, Statement, Subscript,
     SymbolDefinition, TableAlias, TableAliasColumnDef, TableConstraint, TableFactor, TableObject,
@@ -589,6 +589,31 @@ impl Spanned for CreateTable {
                 .chain(partition_of.iter().map(|i| i.span()))
                 .chain(for_values.iter().map(|i| i.span())),
         )
+    }
+}
+
+impl Spanned for PartitionBoundValue {
+    fn span(&self) -> Span {
+        match self {
+            PartitionBoundValue::Expr(expr) => expr.span(),
+            PartitionBoundValue::MinValue => Span::empty(),
+            PartitionBoundValue::MaxValue => Span::empty(),
+        }
+    }
+}
+
+impl Spanned for ForValues {
+    fn span(&self) -> Span {
+        match self {
+            ForValues::In(exprs) => union_spans(exprs.iter().map(|e| e.span())),
+            ForValues::From { from, to } => union_spans(
+                from.iter()
+                    .map(|v| v.span())
+                    .chain(to.iter().map(|v| v.span())),
+            ),
+            ForValues::With { .. } => Span::empty(),
+            ForValues::Default => Span::empty(),
+        }
     }
 }
 
