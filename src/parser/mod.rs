@@ -5248,13 +5248,7 @@ impl<'a> Parser<'a> {
         self.expect_token(&Token::RParen)?;
 
         let return_type = if self.parse_keyword(Keyword::RETURNS) {
-            let is_setof = self.parse_keyword(Keyword::SETOF);
-            let base_type = self.parse_data_type()?;
-            Some(if is_setof {
-                DataType::SetOf(Box::new(base_type))
-            } else {
-                base_type
-            })
+            Some(self.parse_data_type()?)
         } else {
             None
         };
@@ -11607,6 +11601,10 @@ impl<'a> Parser<'a> {
                     self.prev_token();
                     let field_defs = self.parse_click_house_tuple_def()?;
                     Ok(DataType::Tuple(field_defs))
+                }
+                Keyword::SETOF => {
+                    let inner = self.parse_data_type()?;
+                    Ok(DataType::SetOf(Box::new(inner)))
                 }
                 Keyword::TRIGGER => Ok(DataType::Trigger),
                 Keyword::ANY if self.peek_keyword(Keyword::TYPE) => {

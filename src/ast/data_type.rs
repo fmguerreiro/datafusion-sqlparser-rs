@@ -59,7 +59,7 @@ pub enum DataType {
         /// Table columns.
         columns: Vec<ColumnDef>,
     },
-    /// SETOF type modifier for PostgreSQL function return types,
+    /// SETOF type modifier for [PostgreSQL] function return types,
     /// e.g. `CREATE FUNCTION ... RETURNS SETOF text`.
     ///
     /// [PostgreSQL]: https://www.postgresql.org/docs/current/sql-createfunction.html
