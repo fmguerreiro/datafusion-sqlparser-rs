@@ -7290,7 +7290,7 @@ fn parse_fulltext_column_and_index_in_postgres() {
         _ => unreachable!(),
     }
 
-    pg().verified_stmt("CREATE INDEX film_fulltext_idx ON film USING gist (fulltext)");
+    pg().verified_stmt("CREATE INDEX film_fulltext_idx ON film USING GIST (fulltext)");
 }
 
 #[test]
@@ -9798,7 +9798,7 @@ fn alter_extension_update_to_version() {
 
 #[test]
 fn alter_procedure_set_search_path() {
-    let sql = "ALTER PROCEDURE myproc(integer) SET search_path = public";
+    let sql = "ALTER PROCEDURE myproc(INTEGER) SET search_path = public";
     let Statement::AlterFunction(stmt) = pg().verified_stmt(sql) else {
         unreachable!()
     };
@@ -9812,7 +9812,7 @@ fn alter_procedure_set_search_path() {
 
 #[test]
 fn alter_procedure_rename() {
-    let sql = "ALTER PROCEDURE myproc(integer, text) RENAME TO renamed_proc";
+    let sql = "ALTER PROCEDURE myproc(INTEGER, TEXT) RENAME TO renamed_proc";
     let Statement::AlterFunction(stmt) = pg().verified_stmt(sql) else {
         unreachable!()
     };
@@ -10323,7 +10323,7 @@ fn alter_table_attach_partition_range() {
     let statements = sqlparser::parser::Parser::parse_sql(&dialect, sql).unwrap();
     assert_eq!(1, statements.len());
     match &statements[0] {
-        Statement::AlterTable { operations, .. } => {
+        Statement::AlterTable(AlterTable { operations, .. }) => {
             assert_eq!(1, operations.len());
             match &operations[0] {
                 AlterTableOperation::AttachPartitionOf {
@@ -10355,7 +10355,7 @@ fn alter_table_attach_partition_list() {
     let statements = sqlparser::parser::Parser::parse_sql(&dialect, sql).unwrap();
     assert_eq!(1, statements.len());
     match &statements[0] {
-        Statement::AlterTable { operations, .. } => {
+        Statement::AlterTable(AlterTable { operations, .. }) => {
             assert_eq!(1, operations.len());
             match &operations[0] {
                 AlterTableOperation::AttachPartitionOf {
@@ -10385,7 +10385,7 @@ fn alter_table_attach_partition_hash() {
     let statements = sqlparser::parser::Parser::parse_sql(&dialect, sql).unwrap();
     assert_eq!(1, statements.len());
     match &statements[0] {
-        Statement::AlterTable { operations, .. } => {
+        Statement::AlterTable(AlterTable { operations, .. }) => {
             assert_eq!(1, operations.len());
             match &operations[0] {
                 AlterTableOperation::AttachPartitionOf {
@@ -10415,7 +10415,7 @@ fn alter_table_attach_partition_default() {
     let statements = sqlparser::parser::Parser::parse_sql(&dialect, sql).unwrap();
     assert_eq!(1, statements.len());
     match &statements[0] {
-        Statement::AlterTable { operations, .. } => {
+        Statement::AlterTable(AlterTable { operations, .. }) => {
             assert_eq!(1, operations.len());
             match &operations[0] {
                 AlterTableOperation::AttachPartitionOf {
@@ -10439,7 +10439,7 @@ fn alter_table_detach_partition_plain() {
     let statements = sqlparser::parser::Parser::parse_sql(&dialect, sql).unwrap();
     assert_eq!(1, statements.len());
     match &statements[0] {
-        Statement::AlterTable { operations, .. } => {
+        Statement::AlterTable(AlterTable { operations, .. }) => {
             assert_eq!(1, operations.len());
             match &operations[0] {
                 AlterTableOperation::DetachPartitionOf {
@@ -10465,7 +10465,7 @@ fn alter_table_detach_partition_concurrently() {
     let statements = sqlparser::parser::Parser::parse_sql(&dialect, sql).unwrap();
     assert_eq!(1, statements.len());
     match &statements[0] {
-        Statement::AlterTable { operations, .. } => {
+        Statement::AlterTable(AlterTable { operations, .. }) => {
             assert_eq!(1, operations.len());
             match &operations[0] {
                 AlterTableOperation::DetachPartitionOf {
@@ -10491,7 +10491,7 @@ fn alter_table_detach_partition_finalize() {
     let statements = sqlparser::parser::Parser::parse_sql(&dialect, sql).unwrap();
     assert_eq!(1, statements.len());
     match &statements[0] {
-        Statement::AlterTable { operations, .. } => {
+        Statement::AlterTable(AlterTable { operations, .. }) => {
             assert_eq!(1, operations.len());
             match &operations[0] {
                 AlterTableOperation::DetachPartitionOf {

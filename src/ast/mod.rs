@@ -4077,6 +4077,7 @@ pub enum Statement {
     /// Note: this is a PostgreSQL-specific statement.
     /// <https://www.postgresql.org/docs/current/sql-createrule.html>
     CreateRule(CreateRule),
+    /// ```sql
     /// CREATE STATISTICS [ IF NOT EXISTS ] name [ ( kind [, ...] ) ] ON expr [, ...] FROM table_name
     /// ```
     /// Note: this is a PostgreSQL-specific statement.
