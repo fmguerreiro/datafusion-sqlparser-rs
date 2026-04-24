@@ -7364,9 +7364,7 @@ impl<'a> Parser<'a> {
         match key {
             "SFUNC" => {
                 self.expect_token(&Token::Eq)?;
-                Ok(CreateAggregateOption::Sfunc(
-                    self.parse_object_name(false)?,
-                ))
+                Ok(CreateAggregateOption::Sfunc(self.parse_object_name(false)?))
             }
             "STYPE" => {
                 self.expect_token(&Token::Eq)?;
@@ -10262,8 +10260,7 @@ impl<'a> Parser<'a> {
                 };
 
                 self.expect_token(&Token::LParen)?;
-                let elements =
-                    self.parse_comma_separated(|p| p.parse_exclusion_element())?;
+                let elements = self.parse_comma_separated(|p| p.parse_exclusion_element())?;
                 self.expect_token(&Token::RParen)?;
 
                 let include = if self.parse_keyword(Keyword::INCLUDE) {
@@ -11390,8 +11387,10 @@ impl<'a> Parser<'a> {
             AlterFunctionOperation::SetSchema {
                 schema_name: self.parse_object_name(false)?,
             }
-        } else if matches!(kind, AlterFunctionKind::Function | AlterFunctionKind::Procedure)
-            && self.parse_keyword(Keyword::NO)
+        } else if matches!(
+            kind,
+            AlterFunctionKind::Function | AlterFunctionKind::Procedure
+        ) && self.parse_keyword(Keyword::NO)
         {
             if !self.parse_keyword(Keyword::DEPENDS) {
                 return self.expected_ref("DEPENDS after NO", self.peek_token_ref());
@@ -11401,15 +11400,20 @@ impl<'a> Parser<'a> {
                 no: true,
                 extension_name: self.parse_object_name(false)?,
             }
-        } else if matches!(kind, AlterFunctionKind::Function | AlterFunctionKind::Procedure)
-            && self.parse_keyword(Keyword::DEPENDS)
+        } else if matches!(
+            kind,
+            AlterFunctionKind::Function | AlterFunctionKind::Procedure
+        ) && self.parse_keyword(Keyword::DEPENDS)
         {
             self.expect_keywords(&[Keyword::ON, Keyword::EXTENSION])?;
             AlterFunctionOperation::DependsOnExtension {
                 no: false,
                 extension_name: self.parse_object_name(false)?,
             }
-        } else if matches!(kind, AlterFunctionKind::Function | AlterFunctionKind::Procedure) {
+        } else if matches!(
+            kind,
+            AlterFunctionKind::Function | AlterFunctionKind::Procedure
+        ) {
             let (actions, restrict) = self.parse_alter_function_actions()?;
             AlterFunctionOperation::Actions { actions, restrict }
         } else {
@@ -11494,7 +11498,10 @@ impl<'a> Parser<'a> {
             let new_name = self.parse_identifier()?;
             AlterTriggerOperation::RenameTo { new_name }
         } else {
-            return self.expected_ref("RENAME TO after ALTER TRIGGER ... ON ...", self.peek_token_ref());
+            return self.expected_ref(
+                "RENAME TO after ALTER TRIGGER ... ON ...",
+                self.peek_token_ref(),
+            );
         };
 
         Ok(AlterTrigger {
@@ -17909,6 +17916,8 @@ impl<'a> Parser<'a> {
                     Keyword::CONNECTION,
                     Keyword::PROCEDURE,
                     Keyword::FUNCTION,
+                    Keyword::TYPE,
+                    Keyword::DOMAIN,
                 ]);
                 let objects =
                     self.parse_comma_separated(|p| p.parse_object_name_inner(false, true));
@@ -17921,6 +17930,8 @@ impl<'a> Parser<'a> {
                     Some(Keyword::VIEW) => Some(GrantObjects::Views(objects?)),
                     Some(Keyword::USER) => Some(GrantObjects::Users(objects?)),
                     Some(Keyword::CONNECTION) => Some(GrantObjects::Connections(objects?)),
+                    Some(Keyword::TYPE) => Some(GrantObjects::Types(objects?)),
+                    Some(Keyword::DOMAIN) => Some(GrantObjects::Domains(objects?)),
                     kw @ (Some(Keyword::PROCEDURE) | Some(Keyword::FUNCTION)) => {
                         if let Some(name) = objects?.first() {
                             self.parse_grant_procedure_or_function(name, &kw)?
@@ -20293,11 +20304,8 @@ impl<'a> Parser<'a> {
     /// Parse a `CREATE FOREIGN TABLE` statement.
     ///
     /// See <https://www.postgresql.org/docs/current/sql-createforeigntable.html>
-    pub fn parse_create_foreign_table(
-        &mut self,
-    ) -> Result<CreateForeignTable, ParserError> {
-        let if_not_exists =
-            self.parse_keywords(&[Keyword::IF, Keyword::NOT, Keyword::EXISTS]);
+    pub fn parse_create_foreign_table(&mut self) -> Result<CreateForeignTable, ParserError> {
+        let if_not_exists = self.parse_keywords(&[Keyword::IF, Keyword::NOT, Keyword::EXISTS]);
         let name = self.parse_object_name(false)?;
         let (columns, _constraints) = self.parse_columns()?;
         self.expect_keyword_is(Keyword::SERVER)?;
@@ -20692,7 +20700,10 @@ impl<'a> Parser<'a> {
     /// Parse a `CREATE [OR REPLACE] TRANSFORM` statement.
     ///
     /// See <https://www.postgresql.org/docs/current/sql-createtransform.html>
-    pub fn parse_create_transform(&mut self, or_replace: bool) -> Result<CreateTransform, ParserError> {
+    pub fn parse_create_transform(
+        &mut self,
+        or_replace: bool,
+    ) -> Result<CreateTransform, ParserError> {
         self.expect_keyword_is(Keyword::FOR)?;
         let type_name = self.parse_data_type()?;
         self.expect_keyword_is(Keyword::LANGUAGE)?;
@@ -20731,7 +20742,6 @@ impl<'a> Parser<'a> {
             elements,
         })
     }
-
 
     /// Parse a `SECURITY LABEL` statement.
     ///
