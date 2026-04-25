@@ -7559,6 +7559,9 @@ pub struct Grantee {
 
 impl fmt::Display for Grantee {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if matches!(self.grantee_type, GranteesType::Public) {
+            return write!(f, "PUBLIC");
+        }
         match self.grantee_type {
             GranteesType::Role => {
                 write!(f, "ROLE ")?;
@@ -7572,9 +7575,7 @@ impl fmt::Display for Grantee {
             GranteesType::Group => {
                 write!(f, "GROUP ")?;
             }
-            GranteesType::Public => {
-                write!(f, "PUBLIC ")?;
-            }
+            GranteesType::Public => {}
             GranteesType::DatabaseRole => {
                 write!(f, "DATABASE ROLE ")?;
             }

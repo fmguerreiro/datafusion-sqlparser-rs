@@ -10556,13 +10556,11 @@ fn parse_alter_type_add_attribute() {
             assert_eq!("public.my_type", name.to_string());
             match operation {
                 AlterTypeOperation::AddAttribute {
-                    if_not_exists,
                     name: attr_name,
                     data_type,
                     collation,
                     drop_behavior,
                 } => {
-                    assert!(!if_not_exists);
                     assert_eq!(Ident::new("new_attr"), attr_name);
                     assert_eq!(DataType::Integer(None), data_type);
                     assert!(collation.is_none());
@@ -10574,8 +10572,7 @@ fn parse_alter_type_add_attribute() {
         other => panic!("expected Statement::AlterType, got {other:?}"),
     }
 
-    pg_and_generic()
-        .verified_stmt("ALTER TYPE foo ADD ATTRIBUTE IF NOT EXISTS new_attr TEXT CASCADE");
+    pg_and_generic().verified_stmt("ALTER TYPE foo ADD ATTRIBUTE new_attr TEXT CASCADE");
     pg_and_generic()
         .verified_stmt(r#"ALTER TYPE foo ADD ATTRIBUTE new_attr TEXT COLLATE "C" RESTRICT"#);
 }
@@ -10791,4 +10788,12 @@ fn parse_alter_default_privileges_multiple_for_roles() {
         "ALTER DEFAULT PRIVILEGES FOR ROLE alice, bob \
          GRANT SELECT ON TABLES TO reader",
     );
+}
+
+#[test]
+fn parse_alter_default_privileges_grant_to_public() {
+    // Regression: Grantee Display used to emit "PUBLIC " with a trailing space,
+    // breaking round-trip for TO PUBLIC.
+    pg_and_generic()
+        .verified_stmt("ALTER DEFAULT PRIVILEGES IN SCHEMA s GRANT SELECT ON TABLES TO PUBLIC");
 }

@@ -11639,7 +11639,6 @@ impl<'a> Parser<'a> {
                 position,
             })
         } else if self.parse_keywords(&[Keyword::ADD, Keyword::ATTRIBUTE]) {
-            let if_not_exists = self.parse_keywords(&[Keyword::IF, Keyword::NOT, Keyword::EXISTS]);
             let attr_name = self.parse_identifier()?;
             let data_type = self.parse_data_type()?;
             let collation = if self.parse_keyword(Keyword::COLLATE) {
@@ -11649,7 +11648,6 @@ impl<'a> Parser<'a> {
             };
             let drop_behavior = self.parse_optional_drop_behavior();
             AlterTypeOperation::AddAttribute {
-                if_not_exists,
                 name: attr_name,
                 data_type,
                 collation,

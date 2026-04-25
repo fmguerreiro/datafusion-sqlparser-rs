@@ -1165,12 +1165,10 @@ pub enum AlterTypeOperation {
     /// Add an attribute to a composite type.
     ///
     /// ```sql
-    /// ALTER TYPE name ADD ATTRIBUTE [IF NOT EXISTS] attribute_name data_type
+    /// ALTER TYPE name ADD ATTRIBUTE attribute_name data_type
     ///     [COLLATE collation] [CASCADE | RESTRICT]
     /// ```
     AddAttribute {
-        /// Whether `IF NOT EXISTS` was specified.
-        if_not_exists: bool,
         /// Attribute name being added.
         name: Ident,
         /// Attribute data type.
@@ -1305,17 +1303,12 @@ impl fmt::Display for AlterTypeOperation {
                 write!(f, "SET SCHEMA {new_schema}")
             }
             Self::AddAttribute {
-                if_not_exists,
                 name,
                 data_type,
                 collation,
                 drop_behavior,
             } => {
-                write!(f, "ADD ATTRIBUTE")?;
-                if *if_not_exists {
-                    write!(f, " IF NOT EXISTS")?;
-                }
-                write!(f, " {name} {data_type}")?;
+                write!(f, "ADD ATTRIBUTE {name} {data_type}")?;
                 if let Some(collation) = collation {
                     write!(f, " COLLATE {collation}")?;
                 }

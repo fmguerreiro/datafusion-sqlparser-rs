@@ -650,6 +650,11 @@ impl fmt::Display for AlterDefaultPrivilegesAction {
 #[cfg_attr(feature = "visitor", derive(Visit, VisitMut))]
 pub struct AlterDefaultPrivileges {
     /// Optional `FOR { ROLE | USER } target_role [, ...]` list.
+    ///
+    /// This field is keyword-agnostic: the parser accepts both `FOR ROLE` and
+    /// `FOR USER` (PostgreSQL treats them as synonyms), but the `Display` impl
+    /// always emits the canonical `FOR ROLE` form. Downstream consumers cannot
+    /// distinguish which keyword the user wrote.
     pub for_roles: Vec<Ident>,
     /// Optional `IN SCHEMA schema_name [, ...]` list.
     pub in_schemas: Vec<Ident>,
