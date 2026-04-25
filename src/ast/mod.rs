@@ -6223,7 +6223,7 @@ impl fmt::Display for Statement {
                 }
                 write!(f, " IS ")?;
                 if let Some(c) = comment {
-                    write!(f, "'{c}'")
+                    write!(f, "'{}'", value::escape_single_quote_string(c))
                 } else {
                     write!(f, "NULL")
                 }

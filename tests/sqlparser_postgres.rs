@@ -10594,6 +10594,15 @@ fn parse_comment_on_aggregate() {
 }
 
 #[test]
+fn parse_comment_on_aggregate_requires_argument_list() {
+    let result = pg().parse_sql_statements("COMMENT ON AGGREGATE foo IS 'bad'");
+    assert!(
+        result.is_err(),
+        "COMMENT ON AGGREGATE without argument list must error, got: {result:?}"
+    );
+}
+
+#[test]
 fn parse_comment_on_function_with_arg_types() {
     match pg_and_generic().verified_stmt("COMMENT ON FUNCTION add(INTEGER, INTEGER) IS 'adds'") {
         Statement::Comment {
@@ -10640,6 +10649,11 @@ fn parse_comment_dollar_quoted_body() {
     pg_and_generic().one_statement_parses_to(
         "COMMENT ON TABLE foo IS $tag$multi\nline$tag$",
         "COMMENT ON TABLE foo IS 'multi\nline'",
+    );
+
+    pg_and_generic().one_statement_parses_to(
+        "COMMENT ON TABLE foo IS $$it's escaped$$",
+        "COMMENT ON TABLE foo IS 'it''s escaped'",
     );
 
     match pg_and_generic()

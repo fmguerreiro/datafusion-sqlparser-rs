@@ -980,6 +980,12 @@ impl<'a> Parser<'a> {
             _ => None,
         };
 
+        if object_type == CommentObject::Aggregate && arguments.is_none() {
+            return Err(ParserError::ParserError(
+                "COMMENT ON AGGREGATE requires an argument list, e.g. AGGREGATE foo(int)".into(),
+            ));
+        }
+
         let relation = match object_type {
             CommentObject::Trigger | CommentObject::Policy => {
                 self.expect_keyword_is(Keyword::ON)?;
