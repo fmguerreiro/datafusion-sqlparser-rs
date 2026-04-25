@@ -2461,6 +2461,8 @@ impl fmt::Display for ShowCreateObject {
 #[cfg_attr(feature = "visitor", derive(Visit, VisitMut))]
 /// Objects that can be targeted by a `COMMENT` statement.
 pub enum CommentObject {
+    /// An aggregate function.
+    Aggregate,
     /// A collation.
     Collation,
     /// A table column.
@@ -2477,6 +2479,8 @@ pub enum CommentObject {
     Index,
     /// A materialized view.
     MaterializedView,
+    /// A row-level security policy.
+    Policy,
     /// A procedure.
     Procedure,
     /// A role.
@@ -2487,6 +2491,8 @@ pub enum CommentObject {
     Sequence,
     /// A table.
     Table,
+    /// A trigger.
+    Trigger,
     /// A type.
     Type,
     /// A user.
@@ -2498,6 +2504,7 @@ pub enum CommentObject {
 impl fmt::Display for CommentObject {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            CommentObject::Aggregate => f.write_str("AGGREGATE"),
             CommentObject::Collation => f.write_str("COLLATION"),
             CommentObject::Column => f.write_str("COLUMN"),
             CommentObject::Database => f.write_str("DATABASE"),
@@ -2506,11 +2513,13 @@ impl fmt::Display for CommentObject {
             CommentObject::Function => f.write_str("FUNCTION"),
             CommentObject::Index => f.write_str("INDEX"),
             CommentObject::MaterializedView => f.write_str("MATERIALIZED VIEW"),
+            CommentObject::Policy => f.write_str("POLICY"),
             CommentObject::Procedure => f.write_str("PROCEDURE"),
             CommentObject::Role => f.write_str("ROLE"),
             CommentObject::Schema => f.write_str("SCHEMA"),
             CommentObject::Sequence => f.write_str("SEQUENCE"),
             CommentObject::Table => f.write_str("TABLE"),
+            CommentObject::Trigger => f.write_str("TRIGGER"),
             CommentObject::Type => f.write_str("TYPE"),
             CommentObject::User => f.write_str("USER"),
             CommentObject::View => f.write_str("VIEW"),
@@ -4413,6 +4422,15 @@ pub enum Statement {
         object_type: CommentObject,
         /// Name of the object the comment applies to.
         object_name: ObjectName,
+        /// Argument types for overloaded objects. `Some(vec![])` represents an
+        /// empty `()` parameter list (e.g. `COMMENT ON FUNCTION f() IS '…'`),
+        /// while `None` means no parameter list was provided. Used for
+        /// `FUNCTION`, `PROCEDURE`, and `AGGREGATE` targets.
+        arguments: Option<Vec<DataType>>,
+        /// Partner relation for objects scoped to a table, i.e. the
+        /// `ON <relation>` tail in `COMMENT ON TRIGGER t ON tbl IS '…'` or
+        /// `COMMENT ON POLICY p ON tbl IS '…'`.
+        relation: Option<ObjectName>,
         /// Optional comment text (None to remove comment).
         comment: Option<String>,
         /// An optional `IF EXISTS` clause. (Non-standard.)
@@ -6199,6 +6217,8 @@ impl fmt::Display for Statement {
             Statement::Comment {
                 object_type,
                 object_name,
+                arguments,
+                relation,
                 comment,
                 if_exists,
             } => {
@@ -6206,9 +6226,16 @@ impl fmt::Display for Statement {
                 if *if_exists {
                     write!(f, "IF EXISTS ")?
                 };
-                write!(f, "ON {object_type} {object_name} IS ")?;
+                write!(f, "ON {object_type} {object_name}")?;
+                if let Some(args) = arguments {
+                    write!(f, "({})", display_comma_separated(args))?;
+                }
+                if let Some(relation) = relation {
+                    write!(f, " ON {relation}")?;
+                }
+                write!(f, " IS ")?;
                 if let Some(c) = comment {
-                    write!(f, "'{c}'")
+                    write!(f, "'{}'", value::escape_single_quote_string(c))
                 } else {
                     write!(f, "NULL")
                 }
