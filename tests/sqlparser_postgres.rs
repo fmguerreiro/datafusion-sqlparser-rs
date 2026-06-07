@@ -10866,6 +10866,20 @@ fn parse_comment_on_operator_requires_argument_list() {
 }
 
 #[test]
+fn parse_comment_on_operator_missing_name_errors() {
+    // Truncated at EOF where the operator name should be: must error with an
+    // "operator name" diagnostic rather than stuffing a bogus "EOF"
+    // identifier into the ObjectName and failing later on a missing paren.
+    let err = pg()
+        .parse_sql_statements("COMMENT ON OPERATOR ")
+        .expect_err("COMMENT ON OPERATOR with no name must error");
+    assert_eq!(
+        ParserError::ParserError("Expected: operator name, found: EOF".to_string()),
+        err
+    );
+}
+
+#[test]
 fn parse_comment_on_rule() {
     match pg_and_generic()
         .verified_stmt("COMMENT ON RULE notify_me ON public.orders IS 'rewrite rule'")

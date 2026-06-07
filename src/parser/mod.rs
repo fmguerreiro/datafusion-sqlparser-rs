@@ -7186,6 +7186,12 @@ impl<'a> Parser<'a> {
     fn parse_operator_name(&mut self) -> Result<ObjectName, ParserError> {
         let mut parts = vec![];
         loop {
+            // Guard against EOF (or a truncated statement) so we error with an
+            // "operator name" diagnostic instead of stuffing the literal "EOF"
+            // string into an identifier and failing later on a missing token.
+            if matches!(self.peek_token_ref().token, Token::EOF) {
+                return self.expected("operator name", self.peek_token());
+            }
             parts.push(ObjectNamePart::Identifier(Ident::new(
                 self.next_token().to_string(),
             )));
