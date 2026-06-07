@@ -968,10 +968,16 @@ impl<'a> Parser<'a> {
         };
 
         self.expect_keyword_is(Keyword::IS)?;
-        let comment = if self.parse_keyword(Keyword::NULL) {
-            None
+        let (comment, comment_dollar_quote) = if self.parse_keyword(Keyword::NULL) {
+            (None, None)
+        } else if let Token::DollarQuotedString(dq) = &self.peek_token_ref().token {
+            // Preserve the dollar-quote delimiter so Display can round-trip,
+            // while keeping the decoded value in `comment` for consumers.
+            let dq = dq.clone();
+            self.next_token();
+            (Some(dq.value.clone()), Some(dq))
         } else {
-            Some(self.parse_literal_string()?)
+            (Some(self.parse_literal_string()?), None)
         };
         Ok(Statement::Comment {
             object_type,
@@ -981,6 +987,7 @@ impl<'a> Parser<'a> {
             table_name,
             on_domain,
             comment,
+            comment_dollar_quote,
             if_exists,
         })
     }
@@ -7186,6 +7193,12 @@ impl<'a> Parser<'a> {
     fn parse_operator_name(&mut self) -> Result<ObjectName, ParserError> {
         let mut parts = vec![];
         loop {
+            // Guard against EOF (or a truncated statement) so we error with an
+            // "operator name" diagnostic instead of stuffing the literal "EOF"
+            // string into an identifier and failing later on a missing token.
+            if matches!(self.peek_token_ref().token, Token::EOF) {
+                return self.expected("operator name", self.peek_token());
+            }
             parts.push(ObjectNamePart::Identifier(Ident::new(
                 self.next_token().to_string(),
             )));

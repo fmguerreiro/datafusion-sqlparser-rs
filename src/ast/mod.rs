@@ -4520,8 +4520,15 @@ pub enum Statement {
         /// `true` when the relation tail used the `ON DOMAIN <domain>` form.
         /// Only meaningful for `Constraint`; always `false` otherwise.
         on_domain: bool,
-        /// Optional comment text (None to remove comment).
+        /// Optional comment text, always the DECODED value (None to remove
+        /// comment). Downstream consumers read this field regardless of the
+        /// original quoting style.
         comment: Option<String>,
+        /// Preserves the original dollar-quote delimiter so Display can
+        /// round-trip `IS $$body$$` / `IS $tag$body$tag$`. `None` means the
+        /// body was single-quoted (or `NULL`); `comment` still carries the
+        /// decoded value in that case.
+        comment_dollar_quote: Option<DollarQuotedString>,
         /// An optional `IF EXISTS` clause. (Non-standard.)
         /// See <https://docs.snowflake.com/en/sql-reference/sql/comment>
         if_exists: bool,
@@ -6311,6 +6318,7 @@ impl fmt::Display for Statement {
                 table_name,
                 on_domain,
                 comment,
+                comment_dollar_quote,
                 if_exists,
             } => {
                 write!(f, "COMMENT ")?;
@@ -6329,7 +6337,9 @@ impl fmt::Display for Statement {
                     write!(f, "{prefix}{table_name}")?;
                 }
                 write!(f, " IS ")?;
-                if let Some(c) = comment {
+                if let Some(dq) = comment_dollar_quote {
+                    write!(f, "{dq}")
+                } else if let Some(c) = comment {
                     write!(f, "'{}'", value::escape_single_quote_string(c))
                 } else {
                     write!(f, "NULL")

@@ -1119,6 +1119,7 @@ fn parse_drop_and_comment_collation_ast() {
             table_name: None,
             on_domain: false,
             comment: Some("US English".to_string()),
+            comment_dollar_quote: None,
             if_exists: false,
         }
     );
@@ -10565,6 +10566,7 @@ fn parse_comment_on_trigger() {
             operator_args: _,
             on_domain: _,
             comment,
+            comment_dollar_quote: _,
             if_exists,
         } => {
             assert_eq!(CommentObject::Trigger, object_type);
@@ -10594,6 +10596,7 @@ fn parse_comment_on_policy() {
             operator_args: _,
             on_domain: _,
             comment,
+            comment_dollar_quote: _,
             if_exists,
         } => {
             assert_eq!(CommentObject::Policy, object_type);
@@ -10620,6 +10623,7 @@ fn parse_comment_on_aggregate() {
             operator_args: _,
             on_domain: _,
             comment,
+            comment_dollar_quote: _,
             if_exists,
         } => {
             assert_eq!(CommentObject::Aggregate, object_type);
@@ -10659,6 +10663,7 @@ fn parse_comment_on_function_with_arg_types() {
             operator_args: _,
             on_domain: _,
             comment,
+            comment_dollar_quote: _,
             if_exists,
         } => {
             assert_eq!(CommentObject::Function, object_type);
@@ -10739,6 +10744,7 @@ fn parse_comment_on_constraint_on_table() {
             operator_args,
             on_domain,
             comment,
+            comment_dollar_quote: _,
             if_exists,
         } => {
             assert_eq!(CommentObject::Constraint, object_type);
@@ -10805,6 +10811,7 @@ fn parse_comment_on_operator_binary() {
             table_name,
             on_domain,
             comment,
+            comment_dollar_quote: _,
             if_exists,
         } => {
             assert_eq!(CommentObject::Operator, object_type);
@@ -10866,6 +10873,20 @@ fn parse_comment_on_operator_requires_argument_list() {
 }
 
 #[test]
+fn parse_comment_on_operator_missing_name_errors() {
+    // Truncated at EOF where the operator name should be: must error with an
+    // "operator name" diagnostic rather than stuffing a bogus "EOF"
+    // identifier into the ObjectName and failing later on a missing paren.
+    let err = pg()
+        .parse_sql_statements("COMMENT ON OPERATOR ")
+        .expect_err("COMMENT ON OPERATOR with no name must error");
+    assert_eq!(
+        ParserError::ParserError("Expected: operator name, found: EOF".to_string()),
+        err
+    );
+}
+
+#[test]
 fn parse_comment_on_rule() {
     match pg_and_generic()
         .verified_stmt("COMMENT ON RULE notify_me ON public.orders IS 'rewrite rule'")
@@ -10878,6 +10899,7 @@ fn parse_comment_on_rule() {
             operator_args,
             on_domain,
             comment,
+            comment_dollar_quote: _,
             if_exists,
         } => {
             assert_eq!(CommentObject::Rule, object_type);
@@ -11156,21 +11178,6 @@ fn parse_alter_default_privileges_grant_to_public() {
 
 #[test]
 fn parse_comment_dollar_quoted_body() {
-    pg_and_generic().one_statement_parses_to(
-        "COMMENT ON TABLE foo IS $$hello world$$",
-        "COMMENT ON TABLE foo IS 'hello world'",
-    );
-
-    pg_and_generic().one_statement_parses_to(
-        "COMMENT ON TABLE foo IS $tag$multi\nline$tag$",
-        "COMMENT ON TABLE foo IS 'multi\nline'",
-    );
-
-    pg_and_generic().one_statement_parses_to(
-        "COMMENT ON TABLE foo IS $$it's escaped$$",
-        "COMMENT ON TABLE foo IS 'it''s escaped'",
-    );
-
     match pg_and_generic()
         .parse_sql_statements("COMMENT ON TABLE foo IS $$hello$$")
         .unwrap()
@@ -11182,4 +11189,16 @@ fn parse_comment_dollar_quoted_body() {
         }
         _ => panic!("Expected COMMENT"),
     }
+}
+
+#[test]
+fn parse_comment_dollar_quoted_round_trip() {
+    // The dollar-quote delimiter is preserved so Display reproduces the input.
+    pg_and_generic().verified_stmt("COMMENT ON TABLE foo IS $$hello world$$");
+    pg_and_generic().verified_stmt("COMMENT ON TABLE foo IS $$it's escaped$$");
+    pg_and_generic().verified_stmt("COMMENT ON TABLE foo IS $tag$body$tag$");
+
+    // A single-quoted comment still Displays single-quoted (no regression).
+    pg_and_generic().verified_stmt("COMMENT ON TABLE foo IS 'plain'");
+    pg_and_generic().verified_stmt("COMMENT ON TABLE foo IS NULL");
 }
