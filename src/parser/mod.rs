@@ -968,10 +968,16 @@ impl<'a> Parser<'a> {
         };
 
         self.expect_keyword_is(Keyword::IS)?;
-        let comment = if self.parse_keyword(Keyword::NULL) {
-            None
+        let (comment, comment_dollar_quote) = if self.parse_keyword(Keyword::NULL) {
+            (None, None)
+        } else if let Token::DollarQuotedString(dq) = &self.peek_token_ref().token {
+            // Preserve the dollar-quote delimiter so Display can round-trip,
+            // while keeping the decoded value in `comment` for consumers.
+            let dq = dq.clone();
+            self.next_token();
+            (Some(dq.value.clone()), Some(dq))
         } else {
-            Some(self.parse_literal_string()?)
+            (Some(self.parse_literal_string()?), None)
         };
         Ok(Statement::Comment {
             object_type,
@@ -981,6 +987,7 @@ impl<'a> Parser<'a> {
             table_name,
             on_domain,
             comment,
+            comment_dollar_quote,
             if_exists,
         })
     }
