@@ -2605,6 +2605,32 @@ impl fmt::Display for CommentOperatorArgs {
     }
 }
 
+/// Partner relation or domain for objects scoped to a relation, i.e. the
+/// `ON <table>` (or `ON DOMAIN <domain>`) tail in
+/// `COMMENT ON TRIGGER t ON tbl IS '…'`,
+/// `COMMENT ON POLICY p ON tbl IS '…'`,
+/// `COMMENT ON RULE r ON tbl IS '…'`, or
+/// `COMMENT ON CONSTRAINT c ON [DOMAIN] tbl IS '…'`.
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "visitor", derive(Visit, VisitMut))]
+pub enum ConstraintTarget {
+    /// The `ON <table>` form.
+    Table(ObjectName),
+    /// The `ON DOMAIN <domain>` form. Only produced when `object_type` is
+    /// `CommentObject::Constraint`.
+    Domain(ObjectName),
+}
+
+impl fmt::Display for ConstraintTarget {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ConstraintTarget::Table(name) => write!(f, "{name}"),
+            ConstraintTarget::Domain(name) => write!(f, "DOMAIN {name}"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "visitor", derive(Visit, VisitMut))]
@@ -4510,16 +4536,15 @@ pub enum Statement {
         /// Modeled separately from `arguments` because operator slots may be
         /// `NONE` (unary operators), which `Vec<DataType>` cannot express.
         operator_args: Option<CommentOperatorArgs>,
-        /// Partner relation for objects scoped to a relation, i.e. the
-        /// `ON <table>` (or `ON DOMAIN <domain>`) tail in
+        /// Partner relation or domain for objects scoped to a relation,
+        /// i.e. the `ON <table>` (or `ON DOMAIN <domain>`) tail in
         /// `COMMENT ON TRIGGER t ON tbl IS '…'`,
         /// `COMMENT ON POLICY p ON tbl IS '…'`,
         /// `COMMENT ON RULE r ON tbl IS '…'`, or
         /// `COMMENT ON CONSTRAINT c ON [DOMAIN] tbl IS '…'`.
-        table_name: Option<ObjectName>,
-        /// `true` when the relation tail used the `ON DOMAIN <domain>` form.
-        /// Only meaningful for `Constraint`; always `false` otherwise.
-        on_domain: bool,
+        /// [`ConstraintTarget::Domain`] is only produced when `object_type`
+        /// is `CommentObject::Constraint`.
+        target: Option<ConstraintTarget>,
         /// Optional comment text, always the DECODED value (None to remove
         /// comment). Downstream consumers read this field regardless of the
         /// original quoting style.
@@ -6315,8 +6340,7 @@ impl fmt::Display for Statement {
                 object_name,
                 arguments,
                 operator_args,
-                table_name,
-                on_domain,
+                target,
                 comment,
                 comment_dollar_quote,
                 if_exists,
@@ -6332,9 +6356,8 @@ impl fmt::Display for Statement {
                 if let Some(operator_args) = operator_args {
                     write!(f, "{operator_args}")?;
                 }
-                if let Some(table_name) = table_name {
-                    let prefix = if *on_domain { " ON DOMAIN " } else { " ON " };
-                    write!(f, "{prefix}{table_name}")?;
+                if let Some(target) = target {
+                    write!(f, " ON {target}")?;
                 }
                 write!(f, " IS ")?;
                 if let Some(dq) = comment_dollar_quote {

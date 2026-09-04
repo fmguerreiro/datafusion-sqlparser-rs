@@ -954,17 +954,20 @@ impl<'a> Parser<'a> {
             None
         };
 
-        let (table_name, on_domain) = match object_type {
+        let target = match object_type {
             CommentObject::Trigger | CommentObject::Policy | CommentObject::Rule => {
                 self.expect_keyword_is(Keyword::ON)?;
-                (Some(self.parse_object_name(false)?), false)
+                Some(ConstraintTarget::Table(self.parse_object_name(false)?))
             }
             CommentObject::Constraint => {
                 self.expect_keyword_is(Keyword::ON)?;
-                let on_domain = self.parse_keyword(Keyword::DOMAIN);
-                (Some(self.parse_object_name(false)?), on_domain)
+                if self.parse_keyword(Keyword::DOMAIN) {
+                    Some(ConstraintTarget::Domain(self.parse_object_name(false)?))
+                } else {
+                    Some(ConstraintTarget::Table(self.parse_object_name(false)?))
+                }
             }
-            _ => (None, false),
+            _ => None,
         };
 
         self.expect_keyword_is(Keyword::IS)?;
@@ -984,8 +987,7 @@ impl<'a> Parser<'a> {
             object_name,
             arguments,
             operator_args,
-            table_name,
-            on_domain,
+            target,
             comment,
             comment_dollar_quote,
             if_exists,

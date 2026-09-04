@@ -1116,8 +1116,7 @@ fn parse_drop_and_comment_collation_ast() {
             object_name: ObjectName::from(vec![Ident::new("test0")]),
             arguments: None,
             operator_args: None,
-            table_name: None,
-            on_domain: false,
+            target: None,
             comment: Some("US English".to_string()),
             comment_dollar_quote: None,
             if_exists: false,
@@ -10561,17 +10560,16 @@ fn parse_comment_on_trigger() {
         Statement::Comment {
             object_type,
             object_name,
-            table_name,
+            target,
             arguments,
             operator_args: _,
-            on_domain: _,
             comment,
             comment_dollar_quote: _,
             if_exists,
         } => {
             assert_eq!(CommentObject::Trigger, object_type);
             assert_eq!("my_trigger", object_name.to_string());
-            assert_eq!("public.my_table", table_name.unwrap().to_string());
+            assert_eq!("public.my_table", target.unwrap().to_string());
             assert!(arguments.is_none());
             assert_eq!(Some("trigger note".to_string()), comment);
             assert!(!if_exists);
@@ -10591,17 +10589,16 @@ fn parse_comment_on_policy() {
         Statement::Comment {
             object_type,
             object_name,
-            table_name,
+            target,
             arguments,
             operator_args: _,
-            on_domain: _,
             comment,
             comment_dollar_quote: _,
             if_exists,
         } => {
             assert_eq!(CommentObject::Policy, object_type);
             assert_eq!("tenant_isolation", object_name.to_string());
-            assert_eq!("public.docs", table_name.unwrap().to_string());
+            assert_eq!("public.docs", target.unwrap().to_string());
             assert!(arguments.is_none());
             assert_eq!(Some("rls".to_string()), comment);
             assert!(!if_exists);
@@ -10618,17 +10615,16 @@ fn parse_comment_on_aggregate() {
         Statement::Comment {
             object_type,
             object_name,
-            table_name,
+            target,
             arguments,
             operator_args: _,
-            on_domain: _,
             comment,
             comment_dollar_quote: _,
             if_exists,
         } => {
             assert_eq!(CommentObject::Aggregate, object_type);
             assert_eq!("my_sum", object_name.to_string());
-            assert!(table_name.is_none());
+            assert!(target.is_none());
             let args = arguments.expect("aggregate should carry argument types");
             assert_eq!(1, args.len());
             assert!(matches!(args[0], DataType::Integer(_)));
@@ -10658,17 +10654,16 @@ fn parse_comment_on_function_with_arg_types() {
         Statement::Comment {
             object_type,
             object_name,
-            table_name,
+            target,
             arguments,
             operator_args: _,
-            on_domain: _,
             comment,
             comment_dollar_quote: _,
             if_exists,
         } => {
             assert_eq!(CommentObject::Function, object_type);
             assert_eq!("add", object_name.to_string());
-            assert!(table_name.is_none());
+            assert!(target.is_none());
             let args = arguments.expect("function should carry argument types");
             assert_eq!(2, args.len());
             assert_eq!(Some("adds".to_string()), comment);
@@ -10739,18 +10734,21 @@ fn parse_comment_on_constraint_on_table() {
         Statement::Comment {
             object_type,
             object_name,
-            table_name,
+            target,
             arguments,
             operator_args,
-            on_domain,
             comment,
             comment_dollar_quote: _,
             if_exists,
         } => {
             assert_eq!(CommentObject::Constraint, object_type);
             assert_eq!("positive_total", object_name.to_string());
-            assert_eq!("public.orders", table_name.unwrap().to_string());
-            assert!(!on_domain);
+            match target {
+                Some(ConstraintTarget::Table(name)) => {
+                    assert_eq!("public.orders", name.to_string())
+                }
+                other => panic!("expected ConstraintTarget::Table, got {other:?}"),
+            }
             assert!(arguments.is_none());
             assert!(operator_args.is_none());
             assert_eq!(Some("must be > 0".to_string()), comment);
@@ -10771,15 +10769,18 @@ fn parse_comment_on_constraint_on_domain() {
         Statement::Comment {
             object_type,
             object_name,
-            table_name,
-            on_domain,
+            target,
             comment,
             ..
         } => {
             assert_eq!(CommentObject::Constraint, object_type);
             assert_eq!("not_null_check", object_name.to_string());
-            assert_eq!("public.email", table_name.unwrap().to_string());
-            assert!(on_domain);
+            match target {
+                Some(ConstraintTarget::Domain(name)) => {
+                    assert_eq!("public.email", name.to_string())
+                }
+                other => panic!("expected ConstraintTarget::Domain, got {other:?}"),
+            }
             assert_eq!(Some("guard".to_string()), comment);
         }
         _ => panic!("Expected COMMENT ON CONSTRAINT ... ON DOMAIN"),
@@ -10808,8 +10809,7 @@ fn parse_comment_on_operator_binary() {
             object_name,
             operator_args,
             arguments,
-            table_name,
-            on_domain,
+            target,
             comment,
             comment_dollar_quote: _,
             if_exists,
@@ -10820,8 +10820,7 @@ fn parse_comment_on_operator_binary() {
             assert!(matches!(op_args.left, Some(DataType::Integer(_))));
             assert!(matches!(op_args.right, Some(DataType::Integer(_))));
             assert!(arguments.is_none());
-            assert!(table_name.is_none());
-            assert!(!on_domain);
+            assert!(target.is_none());
             assert_eq!(Some("integer addition".to_string()), comment);
             assert!(!if_exists);
         }
@@ -10894,18 +10893,16 @@ fn parse_comment_on_rule() {
         Statement::Comment {
             object_type,
             object_name,
-            table_name,
+            target,
             arguments,
             operator_args,
-            on_domain,
             comment,
             comment_dollar_quote: _,
             if_exists,
         } => {
             assert_eq!(CommentObject::Rule, object_type);
             assert_eq!("notify_me", object_name.to_string());
-            assert_eq!("public.orders", table_name.unwrap().to_string());
-            assert!(!on_domain);
+            assert_eq!("public.orders", target.unwrap().to_string());
             assert!(arguments.is_none());
             assert!(operator_args.is_none());
             assert_eq!(Some("rewrite rule".to_string()), comment);
